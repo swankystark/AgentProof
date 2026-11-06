@@ -1,0 +1,27 @@
+{
+  "name": "agentproof",
+  "private": true,
+  "type": "module",
+  "workspaces": ["apps/*", "packages/*"],
+  "scripts": {
+    "dev": "concurrently -k -n api,web -c green,cyan \"bun --env-file=../../.env --cwd=apps/api run dev\" \"bun --cwd=apps/web run dev\"",
+    "dev:api": "bun --env-file=../../.env --cwd=apps/api run dev",
+    "dev:web": "bun --cwd=apps/web run dev",
+    "chaos": "bun apps/api/src/chaos-cli.ts",
+    "db:generate": "bun --env-file=../../.env --cwd=apps/api run db:generate",
+    "db:migrate": "bun --env-file=../../.env --cwd=apps/api run db:migrate",
+    "test": "bun test tests packages apps/api/src",
+    "typecheck": "tsc --noEmit -p apps/api/tsconfig.json && tsc --noEmit -p apps/web/tsconfig.json",
+    "lint": "biome check .",
+    "format": "biome format --write .",
+    "build": "bun --cwd=apps/web run build && bun --cwd=apps/api run build"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.2.0",
+    "@types/bun": "^1.2.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "concurrently": "^9.1.0",
+    "typescript": "^5.9.0"
+  }
+}

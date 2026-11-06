@@ -1,0 +1,1 @@
+{"extends":"../../tsconfig.base.json","compilerOptions":{"composite":true,"types":["vite/client"],"lib":["ESNext","DOM","DOM.Iterable"]},"include":["src"]}

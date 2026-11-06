@@ -1,0 +1,12 @@
+:10000 {
+  @backend path /api/* /health /ready
+  handle @backend {
+    reverse_proxy agentproof-api:10000
+  }
+
+  handle {
+    root * /srv
+    try_files {path} /index.html
+    file_server
+  }
+}

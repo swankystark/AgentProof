@@ -1,0 +1,21 @@
+FROM oven/bun:1 AS build
+WORKDIR /app
+COPY package.json bun.lock ./
+COPY apps ./apps
+COPY packages ./packages
+COPY tsconfig.base.json ./
+RUN bun install --frozen-lockfile
+RUN bun --cwd=apps/api run build
+
+FROM oven/bun:1-slim
+WORKDIR /app
+COPY --from=build /app/apps/api/dist ./apps/api/dist
+COPY --from=build /app/apps/api/migrations ./apps/api/migrations
+COPY --from=build /app/apps/api/drizzle.config.ts ./apps/api/drizzle.config.ts
+COPY --from=build /app/apps/api/src/db/schema.ts ./apps/api/src/db/schema.ts
+COPY --from=build /app/node_modules ./node_modules
+COPY --from=build /app/apps/api/node_modules ./apps/api/node_modules
+COPY --from=build /app/packages ./packages
+ENV API_PORT=10000
+EXPOSE 10000
+CMD ["bun", "apps/api/dist/index.js"]

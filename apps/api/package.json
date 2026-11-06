@@ -1,0 +1,28 @@
+{
+  "name": "@agentproof/api",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun --env-file=../../.env --hot src/index.ts",
+    "start": "bun src/index.ts",
+    "build": "bun build src/index.ts --target bun --outdir dist",
+    "chaos": "bun src/chaos-cli.ts",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:push": "drizzle-kit push"
+  },
+  "dependencies": {
+    "@agentproof/contracts": "workspace:*",
+    "@agentproof/invariant-engine": "workspace:*",
+    "@agentproof/scenario-engine": "workspace:*",
+    "@google/genai": "^1.20.0",
+    "@hono/node-server": "^1.19.0",
+    "@hono/zod-validator": "^0.7.2",
+    "drizzle-orm": "^0.44.0",
+    "hono": "^4.9.0",
+    "ky": "^1.10.0",
+    "postgres": "^3.4.7",
+    "zod": "^4.1.0"
+  },
+  "devDependencies": { "drizzle-kit": "^0.31.4" }
+}

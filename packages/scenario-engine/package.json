@@ -1,0 +1,1 @@
+{"name":"@agentproof/scenario-engine","private":true,"type":"module","exports":"./src/index.ts","dependencies":{"@agentproof/contracts":"workspace:*"}}
