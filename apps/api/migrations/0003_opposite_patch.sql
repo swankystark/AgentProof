@@ -1,0 +1,1 @@
+ALTER TABLE "testing_sessions" ADD COLUMN "owner_id" text NOT NULL;

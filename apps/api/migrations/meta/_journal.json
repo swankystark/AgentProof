@@ -15,6 +15,34 @@
       "when": 1792816564348,
       "tag": "0001_powerful_exiles",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794406663647,
+      "tag": "0002_perfect_cassandra_nova",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1794406758238,
+      "tag": "0003_opposite_patch",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1794407248569,
+      "tag": "0004_reflective_miracleman",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1797657600000,
+      "tag": "0005_session_step_default",
+      "breakpoints": true
     }
   ]
 }

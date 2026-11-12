@@ -1,112 +1,155 @@
 # AgentProof
 
-**Chaos engineering for agentic commerce. Find the payment failure you didn't know to test.**
+**Deterministic Payment Resilience & Chaos Testing Platform**
 
-AgentProof explores combinations of payment retries, delayed or repeated webhooks, worker interleavings, network response loss, and merchant behavior. It checks each resulting state with deterministic financial invariants, shrinks a discovered counterexample, and saves the exact logical schedule as a replayable regression artifact.
+AgentProof battle-tests payment checkouts against real-world chaos—network drops, duplicate webhooks, retry storms, and race conditions—before they hit production. It pairs real PayPal Sandbox transactions with local property-based chaos exploration, catches subtle payment violations, and shrinks them to the exact minimal sequence required to reproduce the bug.
 
-AgentProof is a test platform for payment systems, not another shopping agent or payment firewall. The included Northstar Goods storefront is a reference system under test. It uses PayPal Sandbox for actual checkout scenarios; bounded schedule campaigns run against a local state model and clearly report zero PayPal requests.
+---
 
-## Why it matters
+## ⚠️ Problem Statement
 
-An agentic checkout is a distributed system. PayPal, a merchant API, a retrying agent, a webhook handler, and a fulfillment worker can all observe a different point in a payment. A happy-path test cannot prove that retries, delayed events, and concurrent workers preserve exactly-once financial behavior.
+In real-world e-commerce, checkouts are distributed and timing-dependent. When network latency or retries occur:
+- **Double Charges:** A buyer retrying a timed-out checkout gets billed twice.
+- **Duplicate Fulfillments:** A webhook delivered twice triggers two warehouse shipments for one order.
+- **Authorization Breaches:** Race conditions allow captures to exceed buyer-approved amounts.
 
-AgentProof turns those event orderings into explicit schedules. AI may help explore or explain evidence, PayPal Sandbox provides external transaction evidence, and deterministic code remains the authority on financial correctness.
+Standard unit tests run sequentially and pass 100% of the time. PayPal's staging sandbox cannot simulate concurrency or message races. These silent bugs remain undiscovered until customers complain.
 
-## Product surfaces
+---
 
-- **Chaos Lab:** configure a seed, bounded execution count, concurrent actors, and an explicit local merchant fault. Inspect discovered violations, shrink history, exact replay, and regression JSON.
-- **Failure shrinking and replay:** minimize the first schedule that preserves a violation; replay the logical schedule without reusing immutable PayPal IDs.
-- **Chaos Command Center:** AG Studio report builder over campaign summaries, schedules, invariant failures, and trace evidence. The AG Studio AI assistant summarizes persisted evidence through a server-side Gemini adapter.
-- **Reference merchant:** product catalog, business spending intent, cart, PayPal JS approval, server-side capture, and refund controls.
-- **Payment integrations:** PayPal OAuth, Orders, capture, authorize/capture/void, stable idempotency keys, negative testing, webhook signature verification, event deduplication, and evidence tracing.
-- **Buyer agent:** Gemini tool calling can search the catalog, manage a cart, and start a Sandbox order. The user must approve the PayPal order.
+## 💡 Solution
 
-## Architecture
+AgentProof brings deterministic chaos testing to modern payment checkouts:
+1. **Live Sandbox Verification:** Connects to real PayPal Sandbox REST APIs with cryptographically verified webhooks.
+2. **Deterministic Chaos Engine:** Simulates interleaved buyer retries, network timeouts, and duplicate webhook worker deliveries.
+3. **Automated Invariant Oracle:** Enforces financial rules (exact-once fulfillment, capture limits, idempotent webhooks).
+4. **Minimal Counterexample Shrinking:** When a failure occurs across dozens of actions, AgentProof prunes it down to the exact 2 or 3 steps that caused it.
+5. **AI Attack Scenarios:** Google Gemini generates adversarial edge cases tailored to specific merchant conditions.
+6. **AG Studio Analytics:** Interactive charts and an AI assistant visualize failure distributions and risk areas.
+
+---
+
+## 🏛️ Architecture
 
 ```mermaid
 flowchart LR
-  M[Merchant adapter / reference store] --> C[Chaos campaign runner]
-  C --> S[Seeded actor interleavings]
-  S --> F[Fault and state model]
-  F --> O[Deterministic invariant oracle]
-  O -->|pass| N[Next schedule]
-  O -->|fail| H[Delta-debug shrinker]
-  H --> R[Logical replay + regression artifact]
-  R --> E[PostgreSQL evidence store]
-  E --> A[AG Studio command center]
-  E --> I[Gemini evidence investigator]
-  M --> P[PayPal Sandbox]
-  P --> W[Verified webhook receiver]
-  W --> E
+    subgraph UI ["Frontend (React 19 + AG Studio)"]
+        A[Testing Sessions] --> B[Live Checkout Demo]
+        B --> C[Chaos Lab]
+        C --> D[AG Studio Analytics]
+    end
+
+    subgraph Core ["Backend (Bun + Hono)"]
+        E[API Gateway]
+        F[Deterministic Chaos Explorer]
+        G[Delta-Debug Shrinker]
+        H[Invariant Engine]
+    end
+
+    subgraph Integrations ["Integrations & Storage"]
+        P[(PostgreSQL + Drizzle)]
+        PP[PayPal Sandbox REST API v2]
+        W[Cryptographic Webhook Verifier]
+        AI[Google Gemini 2.5 Flash]
+    end
+
+    A --> E
+    B --> PP
+    PP --> W
+    W --> P
+    C --> F
+    F --> H
+    H -->|Violation Found| G
+    G --> P
+    D --> AI
+    E --> P
 ```
 
-The local model runner does not impersonate PayPal. A campaign's `externalPaymentRequests: 0` field distinguishes local schedule evidence from PayPal Sandbox evidence.
+---
 
-## Technology
+## 🧰 Tech Stack
 
-Bun workspaces, TypeScript, React, Hono, PostgreSQL, Drizzle, PayPal REST and JS SDK, Gemini, AG Grid, AG Studio, and Caddy for the Render web container.
+| Category | Technology |
+|---|---|
+| **Frontend** | React 19, TypeScript, Vite, AG Grid, AG Studio |
+| **Backend** | Bun Runtime, Hono API framework |
+| **Database** | PostgreSQL, Drizzle ORM |
+| **Payments** | PayPal REST SDK v2, Cryptographic Webhook Signature Verification |
+| **AI** | Google Gemini 2.5 Flash (scenario generation + plain-English analytics assistant) |
+| **Testing** | Custom property-based chaos explorer with delta-debugging shrinking |
 
-## Local setup
+---
 
-Requirements: Bun 1.x and Docker Compose. Copy `.env.example` to `.env` only if you need a fresh configuration; keep existing credentials in your local `.env`.
+## 🚀 Key Features
 
-```sh
+- **End-to-End Real Sandbox Payment:** Real catalog checkout with live PayPal approval and server-side capture.
+- **Cryptographic Webhook Verification:** Real-time certificate validation, deduplication checks, and persistent audit logs.
+- **Chaos Lab:** Execute seeded adversarial schedules across concurrent buyer, worker, and network actors.
+- **Minimal Bug Counterexamples:** Automatically simplifies 20-step chaos schedules down to minimal 2-step reproducible bug reports.
+- **Interactive AG Studio Analytics:** 5 pre-built analytical datasets to explore test outcomes, schedules, and violation categories.
+- **AI Analytics Assistant:** Conversational insights explaining payment risks without cryptic error codes.
+- **Session Management:** Start, resume, review, and delete test sessions with full historical evidence.
+
+---
+
+## ⚙️ Setup & Installation
+
+### Prerequisites
+- [Bun](https://bun.sh/) (v1.x)
+- Docker & Docker Compose (for PostgreSQL)
+- Node.js 18+ (optional, for tooling)
+
+### 1. Clone & Install
+```bash
+git clone https://github.com/swankystark/AgentProof.git
+cd AgentProof
 bun install
+```
+
+### 2. Environment Configuration
+Copy the example environment file and fill in your credentials:
+```bash
+cp .env.example .env
+```
+Key environment variables:
+```env
+DATABASE_URL=postgresql://agentproof:agentproof@localhost:5432/agentproof
+PAYPAL_CLIENT_ID=your_paypal_sandbox_client_id
+PAYPAL_CLIENT_SECRET=your_paypal_sandbox_client_secret
+PAYPAL_WEBHOOK_ID=your_paypal_webhook_id
+GEMINI_API_KEY=your_gemini_api_key
+```
+
+### 3. Start Database & Run Migrations
+```bash
 docker compose up -d postgres
 cd apps/api
 bun run db:migrate
 cd ../..
-bun run dev
 ```
 
-Open <http://localhost:5173>. The API listens on <http://localhost:8787>. `/health` reports service configuration and connectivity; `/ready` checks database availability.
+---
 
-## Focused verification
+## 🏃 Running the Application
 
-```sh
-bun test tests packages apps/api/src
-bun run typecheck
-bun run build
+### Start Development Servers
+```bash
+bun run dev
+```
+- **Web UI:** `http://localhost:5173`
+- **API Server:** `http://localhost:8787`
+
+### Run Deterministic Chaos CLI (Offline Model Testing)
+```bash
+# Run 25 bounded chaos schedules
 bun run chaos -- --seed=42 --runs=25 --actors=3
+
+# Injected fault testing (should catch violation)
 bun run chaos -- --seed=17 --runs=25 --actors=3 --inject-duplicate-fulfillment --expect-failure
 ```
 
-The CLI campaign is deterministic local model exploration. It never calls PayPal. Add those commands to a CI job; an unsafe campaign should pass only when `--expect-failure` finds the injected invariant violation.
-
-## Environment
-
-See `.env.example` for the complete variable list. The web app uses same-origin API routing outside Vite development. `AG_STUDIO_LICENSE_KEY` is optional for development and should be set for a licensed deployment. PayPal webhook verification requires `PAYPAL_WEBHOOK_ID` from the Sandbox app webhook configuration. PayPal, Gemini, and Render credentials stay on the server; only the AG Studio license key and PayPal client ID are returned to the browser.
-
-## Chaos model boundaries
-
-The current campaign engine explores bounded seeded interleavings of buyer, webhook-worker, and fulfillment-worker actions. Its execution cap is 1,000 schedules. Campaign evidence is model evidence, not a claim that every schedule was executed against a live merchant or PayPal. The API and storefront retain real PayPal Sandbox workflows for representative external validation.
-
-The current adapter surface is the included reference merchant API. `docs/merchant-adapter.md` describes the extension contract and its current boundary; a generic third-party SDK/adapter is not yet implemented.
-
-## Documentation
-
-- [Architecture](docs/architecture.md)
-- [Chaos engine and coverage](docs/chaos-engine.md)
-- [Failure shrinking](docs/failure-shrinking.md)
-- [Replay and regression artifacts](docs/replay.md)
-- [Merchant adapter boundary](docs/merchant-adapter.md)
-- [CI use](docs/ci.md)
-- [PayPal integration](docs/paypal-integration.md)
-- [Threat model](docs/threat-model.md)
-- [Three-minute demo](docs/demo-script.md)
-- [Manual component and end-to-end guide](docs/final-manual-e2e.md)
-- [Hackathon submission draft](docs/hackathon-submission.md)
-
-## Render
-
-`render.yaml` defines the API, web proxy, and PostgreSQL services. Deploy it as a Blueprint, enter the PayPal Sandbox, Gemini, and optional AG Studio license values in Render's secret prompts, then configure a PayPal webhook against `https://<web-service>/api/webhooks/paypal`. Do not turn on live PayPal credentials for this demo deployment.
-
-## Hackathon alignment
-
-PayPal is the external payment authority: the reference merchant creates and captures Sandbox orders, stores stable request IDs, verifies signed webhooks, and limits refunds. AI is used for buyer tool-calling, scenario generation, and evidence-based investigation. The deterministic invariant engine—not an LLM—decides payment correctness. AG Studio lets operators build cross-filtered reports from actual recorded evidence.
-
-## License
-
-The AgentProof application code is released under the [MIT License](LICENSE).
-
-Third-party services and packages retain their own terms. In particular, AG Studio is commercially licensed software: keep `AG_STUDIO_LICENSE_KEY` in environment configuration and follow AG Grid's terms for trial or production use. PayPal Sandbox and Gemini credentials are also subject to their respective provider terms and must never be committed.
+### Typecheck & Build
+```bash
+bun run typecheck
+bun run build
+```

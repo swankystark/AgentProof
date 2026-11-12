@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm"
 import { z } from "zod"
 import { db } from "./db/client"
-import { paypalCaptures, paypalOrders, paypalWebhookEvents, traceEvents, merchantOrders } from "./db/schema"
+import { paypalCaptures, paypalOrders, paypalWebhookEvents, traceEvents, merchantOrders, businessIntents } from "./db/schema"
 import { verifyWebhook } from "./paypal"
 
 const paypalEventSchema = z.object({ id: z.string().min(1), event_type: z.string().min(1), resource: z.object({ id: z.string().optional(), status: z.string().optional(), supplementary_data: z.object({ related_ids: z.object({ order_id: z.string().optional() }).optional() }).optional(), amount: z.object({ value: z.string().optional() }).optional() }).optional() })
@@ -16,7 +16,19 @@ export async function receiveWebhook(headers: Headers, payload: unknown): Promis
   if (inserted.length === 0) return { accepted: true, duplicate: true }
   const resource = event.resource
   const eventType = event.event_type
-  await db.insert(traceEvents).values({ id: crypto.randomUUID(), source: "paypal-webhook", eventType, details: { paypalEventId: event.id, resourceId: resource?.id ?? "unknown" } })
+  let associatedSessionId: string | null = null
+  const orderId = resource?.supplementary_data?.related_ids?.order_id
+  if (orderId) {
+    const [mapping] = await db.select().from(paypalOrders).where(eq(paypalOrders.paypalOrderId, orderId)).limit(1)
+    if (mapping) {
+      const [order] = await db.select().from(merchantOrders).where(eq(merchantOrders.id, mapping.merchantOrderId)).limit(1)
+      if (order) {
+        const [intent] = await db.select().from(businessIntents).where(eq(businessIntents.id, order.intentId)).limit(1)
+        if (intent) associatedSessionId = intent.sessionId
+      }
+    }
+  }
+  await db.insert(traceEvents).values({ id: crypto.randomUUID(), sessionId: associatedSessionId, source: "paypal-webhook", eventType, details: { paypalEventId: event.id, resourceId: resource?.id ?? "unknown", signatureVerified: true, duplicate: false } })
   if (eventType === "PAYMENT.CAPTURE.COMPLETED" && resource?.id) {
     const orderId = resource.supplementary_data?.related_ids?.order_id
     if (orderId) {

@@ -8,3 +8,8 @@ coverage/
 !.env.example
 *.log
 .DS_Store
+# Temporary video recordings and local backups
+Demo_Vid_*.webm
+Untitled design.mp4
+final-vid.mp4
+.backup/
